@@ -1,0 +1,21 @@
+---
+- name: Deploy squid config to containers
+  ansible.builtin.template:
+    src: squid.conf.j2
+    dest: "/var/lib/lxc/{{ item.name }}/rootfs/etc/squid/squid.conf"
+    owner: root
+    group: root
+    mode: '0644'
+  loop: "{{ lxc_containers }}"
+
+- name: Ensure squid password file exists
+  ansible.builtin.command:
+    cmd: >
+      lxc-attach -n {{ item.name }} --
+      bash -c 'touch /etc/squid/passwd && chown proxy:proxy /etc/squid/passwd && chmod 640 /etc/squid/passwd'
+  loop: "{{ lxc_containers }}"
+
+- name: Restart squid in containers
+  ansible.builtin.command:
+    cmd: "lxc-attach -n {{ item.name }} -- systemctl restart squid"
+  loop: "{{ lxc_containers }}"

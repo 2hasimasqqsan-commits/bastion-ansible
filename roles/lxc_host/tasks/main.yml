@@ -1,0 +1,34 @@
+---
+- name: Install LXC host packages
+  ansible.builtin.apt:
+    name:
+      - lxc
+      - lxc-templates
+      - uidmap
+      - bridge-utils
+      - debootstrap
+      - openssl
+    state: present
+
+- name: Disable lxc-net service
+  ansible.builtin.systemd:
+    name: lxc-net
+    enabled: false
+    state: stopped
+  when: disable_lxcbr0 | bool
+  ignore_errors: true
+
+- name: Disable LXC default NAT bridge
+  ansible.builtin.lineinfile:
+    path: /etc/default/lxc-net
+    regexp: '^USE_LXC_BRIDGE='
+    line: 'USE_LXC_BRIDGE="false"'
+    create: true
+  when: disable_lxcbr0 | bool
+
+- name: Ensure LXC service is enabled
+  ansible.builtin.systemd:
+    name: lxc
+    enabled: true
+    state: started
+  ignore_errors: true

@@ -1,0 +1,68 @@
+---
+- name: Update apt cache in LXC containers
+  ansible.builtin.command:
+    cmd: "lxc-attach -n {{ item.name }} -- apt update"
+  loop: "{{ lxc_containers }}"
+  changed_when: false
+
+- name: Install base packages in LXC containers
+  ansible.builtin.command:
+    cmd: >
+      lxc-attach -n {{ item.name }} -- apt install -y
+      vim curl wget dnsutils jq rsync
+      openssh-server ufw squid auditd chrony
+      libpam-pwquality sysstat logrotate apache2-utils
+  loop: "{{ lxc_containers }}"
+
+- name: Set container hostname
+  ansible.builtin.command:
+    cmd: "lxc-attach -n {{ item.name }} -- hostnamectl set-hostname {{ item.name }}"
+  loop: "{{ lxc_containers }}"
+
+- name: Set timezone in containers
+  ansible.builtin.command:
+    cmd: "lxc-attach -n {{ item.name }} -- timedatectl set-timezone {{ timezone }}"
+  loop: "{{ lxc_containers }}"
+  failed_when: false
+  changed_when: false
+
+- name: Configure pwquality in containers
+  ansible.builtin.copy:
+    dest: "/var/lib/lxc/{{ item.name }}/rootfs/etc/security/pwquality.conf"
+    owner: root
+    group: root
+    mode: '0644'
+    content: |
+      minlen = 8
+      minclass = 4
+      dcredit = -1
+      ucredit = -1
+      lcredit = -1
+      ocredit = -1
+      enforce_for_root
+  loop: "{{ lxc_containers }}"
+
+- name: Ensure pam_pwquality is enabled
+  ansible.builtin.command:
+    cmd: >
+      lxc-attach -n {{ item.name }} --
+      grep -q '^password.*pam_pwquality.so' /etc/pam.d/common-password
+  loop: "{{ lxc_containers }}"
+  changed_when: false
+
+- name: Create vendor users in containers
+  ansible.builtin.command:
+    cmd: >
+      lxc-attach -n {{ item.name }} --
+      bash -c 'id {{ item.user }} >/dev/null 2>&1 || useradd -m -s /bin/bash {{ item.user }}'
+  loop: "{{ lxc_containers }}"
+
+- name: Deploy sshd_config to containers
+  ansible.builtin.template:
+    src: sshd_config.j2
+    dest: "/var/lib/lxc/{{ item.name }}/rootfs/etc/ssh/sshd_config"
+    owner: root
+    group: root
+    mode: '0644'
+  loop: "{{ lxc_containers }}"
+  notify: Restart ssh in containers

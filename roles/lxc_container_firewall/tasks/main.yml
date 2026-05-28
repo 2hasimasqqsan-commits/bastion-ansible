@@ -1,0 +1,65 @@
+---
+- name: Configure rsyslog UFW rule
+  ansible.builtin.template:
+    src: rsyslog-ufw.conf.j2
+    dest: "/var/lib/lxc/{{ item.name }}/rootfs/etc/rsyslog.d/20-ufw.conf"
+    owner: root
+    group: root
+    mode: '0644'
+  loop: "{{ lxc_containers }}"
+
+- name: Configure UFW logrotate
+  ansible.builtin.template:
+    src: ufw-logrotate.j2
+    dest: "/var/lib/lxc/{{ item.name }}/rootfs/etc/logrotate.d/ufw"
+    owner: root
+    group: root
+    mode: '0644'
+  loop: "{{ lxc_containers }}"
+
+- name: Configure UFW rules in containers
+  ansible.builtin.shell: |
+    lxc-attach -n {{ item.name }} -- bash -s <<'EOS'
+    set -e
+
+    ufw --force reset
+    ufw default deny incoming
+
+    {% if item.outbound_policy | default('allow') == 'restricted' %}
+    ufw default deny outgoing
+    {% else %}
+    ufw default allow outgoing
+    {% endif %}
+
+    # --- inbound rules ---
+    {% for cidr in allowed_source_cidrs %}
+    ufw allow from {{ cidr }} to any port {{ container_ssh_port }} proto tcp
+    ufw allow from {{ cidr }} to any port {{ container_squid_port }} proto tcp
+    {% endfor %}
+
+    {% if item.outbound_policy | default('allow') == 'restricted' %}
+
+    # --- outbound DNS ---
+    {% for dns in dns_servers %}
+    ufw allow out to {{ dns }} port 53 proto udp
+    ufw allow out to {{ dns }} port 53 proto tcp
+    {% endfor %}
+
+    # --- outbound NTP ---
+    ufw allow out to {{ gateway_ip }} port 123 proto udp
+
+    # --- allowed outbound TCP targets ---
+    {% for target in item.allowed_outbound_tcp | default([]) %}
+    {% for port in target.ports %}
+    ufw allow out to {{ target.ip }} port {{ port }} proto tcp
+    {% endfor %}
+    {% endfor %}
+
+    {% endif %}
+
+    ufw logging on
+    yes | ufw enable
+    ufw status verbose
+    EOS
+  loop: "{{ lxc_containers }}"
+

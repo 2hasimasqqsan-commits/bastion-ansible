@@ -1,0 +1,23 @@
+---
+- name: Deploy audit rules to containers
+  ansible.builtin.template:
+    src: jump.rules.j2
+    dest: "/var/lib/lxc/{{ item.name }}/rootfs/etc/audit/rules.d/jump.rules"
+    owner: root
+    group: root
+    mode: '0640'
+  loop: "{{ lxc_containers }}"
+
+- name: Enable and restart auditd in containers
+  ansible.builtin.command:
+    cmd: >
+      lxc-attach -n {{ item.name }} --
+      bash -c 'systemctl enable auditd || true; systemctl restart auditd || true'
+  loop: "{{ lxc_containers }}"
+  failed_when: false
+
+- name: Load audit rules in containers
+  ansible.builtin.command:
+    cmd: "lxc-attach -n {{ item.name }} -- augenrules --load"
+  loop: "{{ lxc_containers }}"
+  failed_when: false

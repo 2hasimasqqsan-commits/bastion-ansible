@@ -1,0 +1,17 @@
+Port {{ container_ssh_port }}
+Protocol 2
+
+PermitRootLogin no
+PasswordAuthentication yes
+PubkeyAuthentication yes
+KbdInteractiveAuthentication no
+UsePAM yes
+
+X11Forwarding no
+AllowTcpForwarding yes
+ClientAliveInterval 300
+ClientAliveCountMax 2
+
+AllowUsers {{ item.user }}
+
+Subsystem sftp /usr/lib/openssh/sftp-server

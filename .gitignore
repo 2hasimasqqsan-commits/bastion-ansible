@@ -1,0 +1,31 @@
+# Ansible secrets / local config
+group_vars/all.yml
+host_vars/*.yml
+*.vault
+vault.yml
+.vault_pass
+vault_pass.txt
+
+# SSH / keys
+*.pem
+*.key
+id_rsa
+id_rsa.pub
+id_ed25519
+id_ed25519.pub
+
+# Python / cache
+__pycache__/
+*.pyc
+
+# Logs / temporary files
+*.log
+*.tmp
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+
+# Local inventory
+inventory.ini

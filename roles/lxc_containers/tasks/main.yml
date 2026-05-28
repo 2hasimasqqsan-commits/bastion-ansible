@@ -1,0 +1,136 @@
+---
+- name: Check existing LXC containers
+  ansible.builtin.command:
+    cmd: "lxc-info -n {{ item.name }}"
+  loop: "{{ lxc_containers }}"
+  register: lxc_info_result
+  failed_when: false
+  changed_when: false
+
+- name: Create LXC containers
+  ansible.builtin.command:
+    cmd: >
+      lxc-create -n {{ item.item.name }} -t download --
+      --dist {{ lxc_dist }}
+      --release {{ lxc_release }}
+      --arch {{ lxc_arch }}
+  loop: "{{ lxc_info_result.results }}"
+  when: item.rc != 0
+
+- name: Configure LXC network and autostart
+  ansible.builtin.blockinfile:
+    path: "/var/lib/lxc/{{ item.name }}/config"
+    marker: "# {mark} ANSIBLE MANAGED LXC NETWORK"
+    block: |
+      lxc.net.0.type = veth
+      lxc.net.0.link = {{ bridge_name }}
+      lxc.net.0.flags = up
+      lxc.net.0.name = eth0
+      lxc.net.0.hwaddr = {{ item.mac }}
+      lxc.net.0.ipv4.address = {{ item.ip }}
+      lxc.net.0.ipv4.gateway = {{ item.gw }}
+
+      # Autostart
+      lxc.start.auto = 1
+      lxc.start.delay = 5
+      lxc.start.order = 50
+  loop: "{{ lxc_containers }}"
+
+- name: Set LXC hostname file
+  ansible.builtin.copy:
+    dest: "/var/lib/lxc/{{ item.name }}/rootfs/etc/hostname"
+    owner: root
+    group: root
+    mode: '0644'
+    content: |
+      {{ item.name }}
+  loop: "{{ lxc_containers }}"
+
+- name: Set LXC hosts file
+  ansible.builtin.copy:
+    dest: "/var/lib/lxc/{{ item.name }}/rootfs/etc/hosts"
+    owner: root
+    group: root
+    mode: '0644'
+    content: |
+      127.0.0.1 localhost
+      127.0.1.1 {{ item.name }}
+
+      # The following lines are desirable for IPv6 capable hosts
+      ::1     localhost ip6-localhost ip6-loopback
+      ff02::1 ip6-allnodes
+      ff02::2 ip6-allrouters
+  loop: "{{ lxc_containers }}"
+
+- name: Ensure LXC containers are started
+  ansible.builtin.shell: |
+    state="$(lxc-info -n {{ item.name }} -sH || true)"
+    if [ "$state" != "RUNNING" ]; then
+      lxc-start -n {{ item.name }}
+      echo "started"
+    else
+      echo "already-running"
+    fi
+  loop: "{{ lxc_containers }}"
+  register: lxc_start_result
+  changed_when: "'started' in lxc_start_result.stdout"
+
+- name: Ensure cloud-init config directory exists inside containers
+  ansible.builtin.file:
+    path: "/var/lib/lxc/{{ item.name }}/rootfs/etc/cloud/cloud.cfg.d"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  loop: "{{ lxc_containers }}"
+
+- name: Disable cloud-init network config inside containers
+  ansible.builtin.copy:
+    dest: "/var/lib/lxc/{{ item.name }}/rootfs/etc/cloud/cloud.cfg.d/99-disable-network-config.cfg"
+    owner: root
+    group: root
+    mode: '0644'
+    content: |
+      network: {config: disabled}
+  loop: "{{ lxc_containers }}"
+
+- name: Remove all netplan yaml files inside containers
+  ansible.builtin.shell: |
+    rm -f /var/lib/lxc/{{ item.name }}/rootfs/etc/netplan/*.yaml
+  loop: "{{ lxc_containers }}"
+  changed_when: false
+
+- name: Configure resolv.conf inside containers
+  ansible.builtin.copy:
+    dest: "/var/lib/lxc/{{ item.name }}/rootfs/etc/resolv.conf"
+    owner: root
+    group: root
+    mode: '0644'
+    content: |
+      {% for dns in dns_servers %}
+      nameserver {{ dns }}
+      {% endfor %}
+  loop: "{{ lxc_containers }}"
+
+- name: Stop LXC containers after network config change
+  ansible.builtin.command:
+    cmd: "lxc-stop -n {{ item.name }}"
+  loop: "{{ lxc_containers }}"
+  failed_when: false
+  changed_when: false
+
+- name: Start LXC containers after network config change
+  ansible.builtin.command:
+    cmd: "lxc-start -n {{ item.name }}"
+  loop: "{{ lxc_containers }}"
+  changed_when: false
+
+- name: Show LXC list
+  ansible.builtin.command:
+    cmd: lxc-ls -f
+  register: lxc_ls_result
+  changed_when: false
+
+- name: Display LXC list
+  ansible.builtin.debug:
+    var: lxc_ls_result.stdout_lines

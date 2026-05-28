@@ -1,0 +1,9 @@
+-w /etc/passwd -p wa -k identity
+-w /etc/shadow -p wa -k identity
+-w /etc/group -p wa -k identity
+-w /etc/sudoers -p wa -k sudoers
+-w /etc/ssh/sshd_config -p wa -k sshd_config
+-w /etc/squid/squid.conf -p wa -k squid_config
+-w /etc/squid/passwd -p wa -k squid_auth
+-w /var/log/squid/access.log -p wa -k squid_access_log
+-w /etc/security/pwquality.conf -p wa -k pwquality

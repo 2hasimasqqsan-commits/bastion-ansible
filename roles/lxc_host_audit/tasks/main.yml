@@ -1,0 +1,43 @@
+---
+- name: Install auditd on LXC host
+  ansible.builtin.apt:
+    name:
+      - auditd
+      - audispd-plugins
+    state: present
+
+- name: Deploy host-side audit rules for LXC bastions
+  ansible.builtin.copy:
+    dest: /etc/audit/rules.d/lxc-bastion.rules
+    owner: root
+    group: root
+    mode: '0640'
+    content: |
+      {% for c in lxc_containers %}
+      -w /var/lib/lxc/{{ c.name }}/config -p wa -k lxc_{{ c.name }}_config
+      -w /var/lib/lxc/{{ c.name }}/rootfs/etc/ssh/sshd_config -p wa -k lxc_{{ c.name }}_sshd
+      -w /var/lib/lxc/{{ c.name }}/rootfs/etc/squid/squid.conf -p wa -k lxc_{{ c.name }}_squid
+      -w /var/lib/lxc/{{ c.name }}/rootfs/etc/squid/passwd -p wa -k lxc_{{ c.name }}_squid_auth
+      -w /var/lib/lxc/{{ c.name }}/rootfs/etc/security/pwquality.conf -p wa -k lxc_{{ c.name }}_pwquality
+      -w /var/lib/lxc/{{ c.name }}/rootfs/etc/passwd -p wa -k lxc_{{ c.name }}_passwd
+      -w /var/lib/lxc/{{ c.name }}/rootfs/etc/shadow -p wa -k lxc_{{ c.name }}_shadow
+      {% endfor %}
+
+- name: Enable auditd
+  ansible.builtin.systemd:
+    name: auditd
+    enabled: true
+    state: started
+
+- name: Load audit rules
+  ansible.builtin.command: augenrules --load
+  changed_when: false
+
+- name: Show audit rules
+  ansible.builtin.command: auditctl -l
+  register: audit_rules
+  changed_when: false
+
+- name: Display audit rules
+  ansible.builtin.debug:
+    var: audit_rules.stdout_lines

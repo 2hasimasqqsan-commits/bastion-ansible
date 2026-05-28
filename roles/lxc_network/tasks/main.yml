@@ -1,0 +1,74 @@
+---
+- name: Ensure netplan backup directory exists
+  ansible.builtin.file:
+    path: /root/netplan-backup
+    state: directory
+    owner: root
+    group: root
+    mode: '0700'
+
+- name: Disable cloud-init network configuration
+  ansible.builtin.copy:
+    dest: /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg
+    owner: root
+    group: root
+    mode: '0644'
+    content: |
+      network: {config: disabled}
+
+- name: Check existing cloud-init netplan
+  ansible.builtin.stat:
+    path: /etc/netplan/50-cloud-init.yaml
+  register: cloud_init_netplan
+
+- name: Backup existing cloud-init netplan
+  ansible.builtin.copy:
+    src: /etc/netplan/50-cloud-init.yaml
+    dest: /root/netplan-backup/50-cloud-init.yaml
+    remote_src: true
+    owner: root
+    group: root
+    mode: '0600'
+  when: cloud_init_netplan.stat.exists
+
+- name: Disable existing cloud-init netplan
+  ansible.builtin.command:
+    cmd: mv /etc/netplan/50-cloud-init.yaml /etc/netplan/50-cloud-init.yaml.bak
+  when: cloud_init_netplan.stat.exists
+
+- name: Configure br0 netplan
+  ansible.builtin.copy:
+    dest: /etc/netplan/01-br0.yaml
+    owner: root
+    group: root
+    mode: '0600'
+    content: |
+      network:
+        version: 2
+        renderer: networkd
+        ethernets:
+          {{ primary_nic }}:
+            dhcp4: no
+            dhcp6: no
+        bridges:
+          {{ bridge_name }}:
+            interfaces:
+              - {{ primary_nic }}
+            addresses:
+              - {{ bastion_ip }}
+            routes:
+              - to: default
+                via: {{ gateway_ip }}
+            nameservers:
+              addresses:
+      {% for dns in dns_servers %}
+                - {{ dns }}
+      {% endfor %}
+            parameters:
+              stp: false
+              forward-delay: 0
+  register: br0_netplan
+
+- name: Apply netplan
+  ansible.builtin.command: netplan apply
+  when: br0_netplan.changed

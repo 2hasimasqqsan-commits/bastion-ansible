@@ -1,0 +1,15 @@
+---
+- name: Configure LXC bastion host
+  hosts: bastion_hosts
+  become: true
+
+  roles:
+    - common
+    - lxc_host
+    - lxc_network
+    - lxc_containers
+    - lxc_container_base
+    - lxc_container_firewall
+    - lxc_container_proxy
+      #  - lxc_container_audit
+    - lxc_host_audit

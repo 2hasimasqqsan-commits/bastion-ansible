@@ -1,0 +1,5 @@
+---
+- name: Restart ssh in containers
+  ansible.builtin.command:
+    cmd: "lxc-attach -n {{ item.name }} -- systemctl restart ssh"
+  loop: "{{ lxc_containers }}"

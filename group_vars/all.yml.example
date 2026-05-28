@@ -1,0 +1,117 @@
+# Common
+timezone: "Asia/Tokyo"
+locale: "en_US.UTF-8"
+
+# Bastion host
+bastion_hostname: "bastion-sv"
+
+# Network
+primary_nic: "enp6s18"
+bridge_name: "br0"
+bastion_ip: "192.168.56.202/24"
+gateway_ip: "192.168.56.2"
+dns_servers:
+  - "192.168.56.122"
+  - "1.1.1.1"
+
+# LXC default NAT bridge
+disable_lxcbr0: true
+
+# Bastion container common settings
+container_ssh_port: 10222
+container_squid_port: 3128
+
+allowed_source_cidrs:
+  - "192.168.56.0/24"
+
+# Test target servers
+dcim_allowed_targets:
+  - "192.168.56.252"
+
+sensor_allowed_targets:
+  - "192.168.56.230"
+
+# Management targets
+network_device_targets:
+  - name: "example-edge-router"
+    ip: "192.168.56.1"
+    ssh_port: 22
+    https_port: 443
+
+  - name: "example-network-router"
+    ip: "192.168.56.2"
+    ssh_port: 22
+    https_port: 443
+
+proxmox_targets:
+  - name: "example-pve-1"
+    ip: "192.168.56.36"
+    ssh_port: 22
+    gui_port: 8006
+
+  - name: "example-pve-2"
+    ip: "192.168.56.37"
+    ssh_port: 22
+    gui_port: 8006
+
+  - name: "example-pve-3"
+    ip: "192.168.56.38"
+    ssh_port: 22
+    gui_port: 8006
+
+# LXC containers
+lxc_dist: "ubuntu"
+lxc_release: "noble"
+lxc_arch: "amd64"
+
+lxc_containers:
+  - name: "jump-dcim"
+    ip: "192.168.56.203/24"
+    gw: "192.168.56.2"
+    mac: "02:16:3e:11:12:03"
+    user: "vendor-dcim"
+    proxy_realm: "jump-dcim-proxy"
+    allowed_targets: "{{ dcim_allowed_targets }}"
+
+  - name: "jump-sensor"
+    ip: "192.168.56.204/24"
+    gw: "192.168.56.2"
+    mac: "02:16:3e:11:12:04"
+    user: "vendor-sensor"
+    proxy_realm: "jump-sensor-proxy"
+    allowed_targets: "{{ sensor_allowed_targets }}"
+
+  - name: "jump-netadmin"
+    ip: "192.168.56.205/24"
+    gw: "192.168.56.2"
+    mac: "02:16:3e:11:12:05"
+    user: "vendor-netadmin"
+    proxy_realm: "jump-netadmin-proxy"
+    allowed_targets:
+      - "192.168.56.1"
+      - "192.168.56.2"
+      - "192.168.56.36"
+      - "192.168.56.37"
+      - "192.168.56.38"
+    allowed_proxy_ports:
+      - 80
+      - 443
+      - 8006
+    allowed_ssh_targets:
+      - "192.168.56.1"
+      - "192.168.56.2"
+      - "192.168.56.36"
+      - "192.168.56.37"
+      - "192.168.56.38"
+    outbound_policy: "restricted"
+    allowed_outbound_tcp:
+      - ip: "192.168.56.1"
+        ports: [443]
+      - ip: "192.168.56.2"
+        ports: [22]
+      - ip: "192.168.56.36"
+        ports: [22, 8006]
+      - ip: "192.168.56.37"
+        ports: [22, 8006]
+      - ip: "192.168.56.38"
+        ports: [22, 8006]

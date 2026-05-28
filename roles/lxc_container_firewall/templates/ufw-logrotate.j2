@@ -1,0 +1,14 @@
+/var/log/ufw.log {
+    su root adm
+    daily
+    rotate 366
+    missingok
+    compress
+    delaycompress
+    notifempty
+    create 0640 syslog adm
+    sharedscripts
+    postrotate
+        [ -x /usr/lib/rsyslog/rsyslog-rotate ] && /usr/lib/rsyslog/rsyslog-rotate >/dev/null 2>&1 || true
+    endscript
+}

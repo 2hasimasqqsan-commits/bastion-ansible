@@ -1,0 +1,38 @@
+---
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Set hostname
+  ansible.builtin.hostname:
+    name: "{{ bastion_hostname }}"
+
+- name: Set timezone
+  community.general.timezone:
+    name: "{{ timezone }}"
+  ignore_errors: true
+
+- name: Install common packages
+  ansible.builtin.apt:
+    name:
+      - vim
+      - git
+      - curl
+      - wget
+      - net-tools
+      - dnsutils
+      - jq
+      - rsync
+      - chrony
+      - sysstat
+      - logrotate
+      - qemu-guest-agent
+    state: present
+
+- name: Enable qemu guest agent
+  ansible.builtin.systemd:
+    name: qemu-guest-agent
+    enabled: true
+    state: started
+  ignore_errors: true
