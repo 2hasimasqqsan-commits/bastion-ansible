@@ -38,6 +38,109 @@ Ubuntu LXC Host VM
               - Access to allowed routers, switches, and Proxmox VE nodes
 ```
 
+## ## Screenshots / Verification
+
+This section shows example verification results for the LXC-based bastion and proxy lab environment.
+
+For security reasons, IP addresses, hostnames, usernames, and internal URLs may be masked in the screenshots.
+
+### Ansible Playbook Result
+
+![Ansible playbook result](docs/images/ansible-playbook-site.png)
+
+The Ansible playbook completed successfully and configured the LXC host, containers, SSH access, Squid proxy, UFW rules, PAM password policy, and auditd monitoring.
+
+### LXC Container List
+
+![LXC container list](docs/images/lxc-list.png)
+
+Each vendor or operator role is assigned to a dedicated LXC bastion container.
+
+Example roles:
+
+* `jump-dcim`
+* `jump-sensor`
+* `jump-netadmin`
+
+### SSH Login Test
+
+![SSH login test](docs/images/ssh-login-test.png)
+
+SSH access is provided through a custom port such as `10222`.
+
+Example:
+
+```bash
+ssh -p 10222 vendor-netadmin@example-bastion-ip
+```
+
+This verifies that a vendor/operator can log in only through the assigned bastion container.
+
+### Squid Proxy Allowed Access
+
+![Squid allowed access](docs/images/squid-allowed-access.png)
+
+The Squid proxy allows access only to approved destinations.
+
+Example:
+
+```bash
+curl -k -v -x http://example-bastion-container-ip:3128 \
+  -U "vendor-netadmin:PROXY_PASSWORD" \
+  https://example-proxmox-ip:8006/
+```
+
+Expected result:
+
+```text
+HTTP/1.1 200 OK
+```
+
+### Squid Proxy Denied Access
+
+![Squid denied access](docs/images/squid-denied-access.png)
+
+Access to non-approved destinations is denied by Squid ACLs.
+
+Example:
+
+```bash
+curl -k -v -x http://example-bastion-container-ip:3128 \
+  -U "vendor-netadmin:PROXY_PASSWORD" \
+  https://not-allowed-target.example.local/
+```
+
+Expected result:
+
+```text
+HTTP/1.1 403 Forbidden
+```
+
+### Firewall Status
+
+![UFW status](docs/images/ufw-status.png)
+
+UFW is used to restrict inbound access and optionally control outbound traffic from each bastion container.
+
+### Audit Log Verification
+
+![auditd log verification](docs/images/auditd-log.png)
+
+Host-side `auditd` monitors important LXC configuration files and security-related changes.
+
+Example:
+
+```bash
+ausearch -k lxc_config
+```
+
+### Web UI Access Through Bastion Proxy
+
+![Web UI proxy access](docs/images/web-ui-proxy-access.png)
+
+This verifies restricted web access to an allowed internal management system, such as Proxmox VE, DCIM, or a monitoring web UI, through the bastion proxy.
+
+
 ## Main Features
 
 * Ubuntu Server 24.04 based LXC host
