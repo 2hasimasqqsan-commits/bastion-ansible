@@ -38,7 +38,7 @@ Ubuntu LXC Host VM
               - Access to allowed routers, switches, and Proxmox VE nodes
 ```
 
-## ## Screenshots / Verification
+## Screenshots / Verification
 
 This section shows example verification results for the LXC-based bastion and proxy lab environment.
 
@@ -68,12 +68,6 @@ Example roles:
 
 SSH access is provided through a custom port such as `10222`.
 
-Example:
-
-```bash
-ssh -p 10222 vendor-netadmin@example-bastion-ip
-```
-
 This verifies that a vendor/operator can log in only through the assigned bastion container.
 
 ### Squid Proxy Allowed Access
@@ -82,39 +76,11 @@ This verifies that a vendor/operator can log in only through the assigned bastio
 
 The Squid proxy allows access only to approved destinations.
 
-Example:
-
-```bash
-curl -k -v -x http://example-bastion-container-ip:3128 \
-  -U "vendor-netadmin:PROXY_PASSWORD" \
-  https://example-proxmox-ip:8006/
-```
-
-Expected result:
-
-```text
-HTTP/1.1 200 OK
-```
-
 ### Squid Proxy Denied Access
 
 ![Squid denied access](docs/images/squid-denied-access.png)
 
 Access to non-approved destinations is denied by Squid ACLs.
-
-Example:
-
-```bash
-curl -k -v -x http://example-bastion-container-ip:3128 \
-  -U "vendor-netadmin:PROXY_PASSWORD" \
-  https://not-allowed-target.example.local/
-```
-
-Expected result:
-
-```text
-HTTP/1.1 403 Forbidden
-```
 
 ### Firewall Status
 
