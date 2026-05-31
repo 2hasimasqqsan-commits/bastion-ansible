@@ -136,9 +136,31 @@ This helps provide audit evidence for security-relevant configuration changes.
 
 ### Web UI Access Through Bastion Proxy
 
-![Web UI proxy access](docs/images/web-ui-proxy-access.png)
+#### Asset Ledger Access Through DCIM Proxy
 
-This verifies restricted web access to an allowed internal management system, such as Proxmox VE, DCIM, or a monitoring web UI, through the bastion proxy.
+![asset-ledger](docs/images/asset-ledger-dcim-proxy-access.png)
+
+This verification shows that an approved internal Web UI can be accessed through the jump-dcim Squid proxy.
+
+#### Zabbix Sensor Access Through Proxy
+
+![zabbix](docs/images/zabbix-sensor-proxy-access.png)
+
+
+This verification shows that an approved monitoring or sensor-related Web UI can be accessed through the appropriate bastion proxy.
+
+#### ZTE Router GUI Access Through Proxy
+
+![zte-router](docs/images/zte-router-gui-proxy-access.png)
+
+This verification shows restricted access to a network device Web UI through the bastion proxy.
+
+#### Proxmox VE GUI Access Through Proxy
+
+![proxmox-ve](docs/images/proxmox-gui-access.png)
+
+
+This verification shows restricted access to the Proxmox VE GUI through the jump-netadmin bastion/proxy path.
 
 
 ## Main Features
