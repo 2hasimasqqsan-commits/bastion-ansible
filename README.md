@@ -122,17 +122,17 @@ HTTP/1.1 403 Forbidden
 
 UFW is used to restrict inbound access and optionally control outbound traffic from each bastion container.
 
-### Audit Log Verification
+### Host-side auditd Verification
 
-![auditd log verification](docs/images/auditd-log.png)
+![auditd service status](docs/images/auditd-status.png)
 
-Host-side `auditd` monitors important LXC configuration files and security-related changes.
+This verification shows that `auditd` is enabled and running on the bastion host.
 
-Example:
+![auditd rules](docs/images/auditd-rules.png)
 
-```bash
-ausearch -k lxc_config
-```
+Host-side `auditd` monitors important LXC-related files such as container configs, SSH settings, Squid settings, password policy files, and account-related files.
+
+This helps provide audit evidence for security-relevant configuration changes.
 
 ### Web UI Access Through Bastion Proxy
 
