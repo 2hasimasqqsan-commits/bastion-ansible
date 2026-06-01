@@ -46,7 +46,7 @@ For security reasons, IP addresses, hostnames, usernames, and internal URLs may 
 
 ### Ansible Playbook Result
 
-![Ansible playbook result](docs/images/ansible-playbook-site.png)
+![Ansible playbook result](docs/images/ansible-playbook-result.png)
 
 The Ansible playbook completed successfully and configured the LXC host, containers, SSH access, Squid proxy, UFW rules, PAM password policy, and auditd monitoring.
 
